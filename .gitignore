@@ -1,0 +1,4 @@
+config.py
+aqi_model.pkl
+__pycache__/
+*.pyc

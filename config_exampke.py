@@ -1,0 +1,1 @@
+WAQI_TOKEN = "dec338b8b4f6788c1ba73250ecb05e2b1b2c0a94"
