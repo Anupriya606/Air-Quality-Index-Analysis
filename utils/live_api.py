@@ -1,9 +1,10 @@
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 import requests
-from config import WAQI_TOKEN
+import streamlit as st
+
+try:
+    from config import WAQI_TOKEN
+except ImportError:
+    WAQI_TOKEN = st.secrets["WAQI_TOKEN"]
 import requests
 from config import WAQI_TOKEN
 
