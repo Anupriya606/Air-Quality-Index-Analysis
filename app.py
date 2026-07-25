@@ -13,6 +13,8 @@ st.set_page_config(page_title="Global AQI Analysis", page_icon="🌍", layout="w
 with open("assets/style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+st.markdown('<style>[data-testid="stAppViewContainer"] { background: transparent; }</style>', unsafe_allow_html=True)
+
 # Load & cache data so it doesn't reload on every interaction
 @st.cache_data
 def get_data():
@@ -22,7 +24,6 @@ def get_data():
 
 df = get_data()
 model, encoder, accuracy = load_or_train_model(df)
-
 
 st.sidebar.title("🌍 Global AQI Dashboard")
 page = st.sidebar.radio("Navigate", ["Live AQI", "World Map", "Country Rankings", "Pollutant Analysis", "Predict AQI Category"])
@@ -48,6 +49,7 @@ if page == "Live AQI":
                 st.plotly_chart(fig, use_container_width=True)
             with col2:
                 st.metric("City", result["city"])
+                st.caption("📍 Reading from the nearest available monitoring station for this location.")
                 st.metric("Dominant Pollutant", result["dominant_pollutant"].upper())
                 st.metric("Last Updated", result["time"])
 
@@ -59,30 +61,6 @@ if page == "Live AQI":
                     st.error("🚫 Unhealthy — limit outdoor activity.")
                 else:
                     st.error("☠️ Hazardous — avoid outdoor exposure.")
-elif page == "World Map":
-    st.title("🗺️ Global AQI Map")
-
-    def get_color(aqi):
-        if aqi <= 50: return [0, 200, 0]
-        elif aqi <= 100: return [255, 165, 0]
-        elif aqi <= 200: return [255, 0, 0]
-        else: return [139, 0, 0]
-
-    map_df = df.copy()
-    map_df["color"] = map_df["AQI Value"].apply(get_color)
-
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=map_df,
-        get_position=["lng", "lat"],
-        get_fill_color="color",
-        get_radius=15000,
-        pickable=True,
-    )
-    view_state = pdk.ViewState(latitude=20, longitude=0, zoom=1.2)
-    st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state,
-                              tooltip={"text": "{City}, {Country}\nAQI: {AQI Value}"}))
-
 
 elif page == "World Map":
     st.title("🗺️ Global AQI Map")
@@ -107,6 +85,16 @@ elif page == "World Map":
     view_state = pdk.ViewState(latitude=20, longitude=0, zoom=1.2)
     st.pydeck_chart(pdk.Deck(layers=[layer], initial_view_state=view_state,
                               tooltip={"text": "{City}, {Country}\nAQI: {AQI Value}"}))
+
+elif page == "Country Rankings":
+    st.title("📊 Country AQI Rankings")
+    rankings = get_country_rankings(df)
+
+    top_n = st.slider("Show top N most polluted countries", 5, 30, 15)
+    fig = px.bar(rankings.head(top_n), x="AQI Value", y="Country", orientation="h",
+                 color="AQI Value", color_continuous_scale="Reds")
+    fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+    st.plotly_chart(fig, use_container_width=True)
 
 elif page == "Pollutant Analysis":
     st.title("🧪 Pollutant Correlation Analysis")
@@ -133,4 +121,3 @@ elif page == "Predict AQI Category":
     if st.button("Predict"):
         category = predict_category(model, encoder, co, ozone, no2, pm25)
         st.success(f"Predicted AQI Category: **{category}**")
-        
